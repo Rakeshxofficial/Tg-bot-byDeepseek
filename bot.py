@@ -1,6 +1,8 @@
 import os
 from dotenv import load_dotenv
 from telethon import TelegramClient, events
+from telethon.tl.functions.messages import GetBotCallbackAnswerRequest
+from telethon.tl.types import UpdateBotChatInviteRequester
 
 # Load environment variables
 load_dotenv()
@@ -12,16 +14,17 @@ bot = TelegramClient(
     api_hash=os.getenv("API_HASH")
 ).start(bot_token=os.getenv("BOT_TOKEN"))
 
-# Event handler for join requests
-@bot.on(events.ChatRequest(chats=[]))  # Empty list means all allowed chats
+@bot.on(events.Raw(types=UpdateBotChatInviteRequester))
 async def handle_join_request(event):
     try:
-        # Automatically approve join request
-        await event.approve()
-        print(f"Approved join request from user {event.user_id} in channel {event.chat_id}")
+        # Approve the join request
+        await bot(GetBotCallbackAnswerRequest(
+            peer=event.peer,
+            data=event.user_id
+        ))
+        print(f"Approved join request from user {event.user_id} in channel {event.peer.channel_id}")
     except Exception as e:
         print(f"Error approving request: {str(e)}")
 
-# Start the bot
 print("Bot is running...")
 bot.run_until_disconnected()
